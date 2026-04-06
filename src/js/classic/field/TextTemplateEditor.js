@@ -1,140 +1,152 @@
-Ext.define('Tualo.quill.form.field.XQuillTextTemplateEditor', {
-    extend: 'Tualo.quill.form.field.Editor',
-    alias: ['widget.tualo_quill_texttemplate_editor'],
-    language: null,
 
-    initComponent: function () {
-        var me = this;
-        me.callParent();
-        window.mEditor = this;
+Ext.define('Tualo.reportarticlesets.Trigger', {
+
+    querySets: async function () {
+        /*filter: JSON.stringify([{
+            operator: 'eq',
+            property: 'view_editor_blg_sets__belegart',
+            value: me.grid.up().reportindex
+        }])
+            */
+        let url = './ds/view_editor_blg_sets/read',
+            request = await fetch(url);
+        if (request.ok) {
+            let response = await request.json();
+            if (response.success) {
+                console.log('querySets', response.data);
+                return response.data;
+            } else {
+                Ext.toast({
+                    html: response.msg,
+                    title: 'Fehler',
+                    width: 200,
+                    align: 't'
+                });
+                return [];
+            }
+        } else {
+            Ext.toast({
+                html: 'Fehler beim Laden der Sets',
+                title: 'Fehler',
+                width: 200,
+                align: 't'
+            });
+            return [];
+        }
+
 
     },
 
-    afterRender: function () {
-        var me = this;
-        me.callParent(arguments);
+    queryProductSets: async function (id) {
+        /*filter: JSON.stringify([{
+            operator: 'eq',
+            property: 'view_editor_blg_sets_artikel__belegart',
+            value: me.grid.up().reportindex
+        }])
+            */
+        let url = './ds/view_editor_blg_sets_artikel/read',
+            request = await fetch(url);
+        if (request.ok) {
+            let response = await request.json();
+            if (response.success) {
+                return response.data;
+            } else {
+                Ext.toast({
+                    html: response.msg,
+                    title: 'Fehler',
+                    width: 200,
+                    align: 't'
+                });
+                return [];
+            }
+        } else {
+            Ext.toast({
+                html: 'Fehler beim Laden der Sets',
+                title: 'Fehler',
+                width: 200,
+                align: 't'
+            });
+            return [];
+        }
+
+
+    },
+
+    createMenu: function (data) {
+        let menu = new Ext.menu.Menu();
+        data.forEach(element => {
+            menu.add({
+                text: element.name,
+                configid: element.id,
+                menu: [],
+                listeners: {
+                    scope: this,
+                    render: this.onMenuRendered
+                }
+            })
+        });
+        return menu;
+    },
+    onMenuRendered: async function (menu) {
+        console.log('onMenuRendered', menu, menu.configid);
+        let me = this,
+            sets = await me.queryProductSets(menu.configid);
+
+        sets.forEach(element => {
+            menu.getMenu().add({
+                text: element.bemerkung,
+                configData: element,
+                listeners: {
+                    scope: this,
+                    click: this.onMenuClick
+                }
+            })
+        });
+    },
+    onMenuClick: function (menu, item) {
+        console.log('onMenuClick', this, menu, item);
+        let data = menu.configData;
+        var grid = this.up('grid'),
+            plugin = grid.findPlugin('cellediting');
+        plugin.context.record.set(data);
         try {
-            me.editor = me.createEditor();
+            plugin.context.record.set('article', data.artikel);
+            plugin.context.record.set('notes', data.artikel);
+            plugin.context.record.set('amount', data.amount);
+            plugin.context.record.set('singleprice', data.epreis);
+            plugin.context.record.set('unit', data.einheit);
         } catch (e) {
             console.error(e);
         }
-    },
 
-    intern: false,
-    createEditor: function (config) {
-        var me = this,
-            editor;
+        console.log(data, plugin.context.record);
+    }
 
-        Quill.prototype.getHtml = function () {
-            return this.container.querySelector('.ql-editor').innerHTML;
-        };
+});
 
+Ext.define('Tualo.reportarticlesets.form.field.SetsArea', {
+    extend: 'Ext.form.field.Text',
+    mixins: ['Tualo.reportarticlesets.Trigger'],
+    alias: 'widget.tualo_report_article_set_area',
+    requires: [
+        'Ext.form.field.TextArea'
+    ],
+    triggers: {
+        opends: {
+            cls: 'x-fa fa-bars',
+            tooltip: "Menü öffnen",
+            handler: async function (btn) {
+                let me = btn,
+                    data = await me.querySets.bind(me)();
 
-        var toolbarOptions = [
-            [{ 'font': [] }],
-            ['bold', 'italic', 'underline'],
-            ['link'],
-            ['blockquote', 'code-block'],
-            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-            [{ 'align': [] }],
-            ['more']
-        ];
-
-        editor = new Quill('#' + this.id + '-inputEl-quilleditor', {
-            modules: {
-                toolbar: {
-                    container: toolbarOptions,
-                    handlers: {
-                        'customControl': () => { console.log('customControl was clicked') }
-                    }
-                }
-            },
-            theme: 'snow'
-        });
-
-        try {
-            var customButton = document.querySelectorAll('.ql-more');
-            customButton = customButton[customButton.length - 1];
-            customButton.addEventListener('click', this.initContextMenu.bind(this));
-        } catch (E) { }
-
-        editor.on('text-change', function (delta, oldDelta, source) {
-            me.intern = true;
-
-            me.setValue(editor.getHtml());
-            me.fireEvent('change', me, editor.getHtml());
-            me.fireEvent('text-change', me, delta, oldDelta, source);
-
-            me.intern = false;
-        });
-        editor.on('selection-change', function (range, oldRange, source) { me.fireEvent('selection-change', me, range, oldRange, source); });
-        return editor;
-    },
-    initContextMenu: function (e) {
-
-
-        var contextMenu = new Ext.menu.Menu({ items: [], width: 600, scrollable: 'y' });
-
-        Tualo.Ajax.request({
-            url: './ds/texttemplate/read',
-            params: {
-                filter: JSON.stringify([{
-                    operator: 'eq',
-                    property: 'texttemplate__klasse',
-                    value: this.templateid
-                }])
-            },
-            scope: this,
-            json: function (o) {
-                if (o.success) {
-
-                    o.data.forEach(element => {
-
-                        contextMenu.add({
-                            text: element.texttemplate__text.substring(0, 70) + '...',
-                            fulltext: element.texttemplate__text,
-                            scope: this,
-                            handler: this.onItemClick
-                        })
-
-                    });
-                    var xy = [e.x, e.y];
-                    contextMenu.showAt(xy);
-                }
+                me.createMenu(data).showAt(btn.getXY());
             }
-        });
+        },
+        initComponent: function () {
+            let me = this;
+            me.callParent();
+            console.log('initComponent reportarticlesets', me);
+        },
 
-    },
-    onDestroy: function () {
-        // this.monacoeditor.dispose();
-        this.callParent();
-    },
-    getSubmitValue: function () {
-        var me = this;
-        return me.editor.getHtml();
-    },
-
-    setValue: function (v) {
-        var me = this,
-            t = (new Date()).getTime();
-
-        if (typeof me.lastchange == 'undefined') me.lastchange = (new Date()).getTime() - 1000;
-        if (t - me.lastchange < 100) return;
-
-        me.callParent([v]);
-        me.lastchange = t;
-
-        if (me.intern !== true) {
-            if (me.editor) {
-                me.editor.setContents(me.editor.clipboard.convert(v), 'silent');
-            } else {
-                me.on('editorReady', function () {
-                    if (me.editor.getHtml() != me.editor.clipboard.convert(v))
-                        me.editor.setContents(me.editor.clipboard.convert(v), 'silent');
-                }, this, { single: true });
-            }
-
-        }
-
-    },
+    }
 });

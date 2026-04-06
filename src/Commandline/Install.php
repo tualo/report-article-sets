@@ -19,6 +19,9 @@ class Install extends CommandLineInstallSQL  implements ICommandline
         'blg_sets.ds' => 'setup ds blg_sets',
         'blg_artikel_set.ds' => 'setup ds blg_artikel_set',
 
+        'custom_types' => 'setup custom_types',
+        'view_editor_blg_sets' => 'setup view_editor_blg_sets',
+        'view_editor_blg_sets_artikel' => 'setup view_editor_blg_sets_artikel',
 
     ];
 }

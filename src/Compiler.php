@@ -10,6 +10,6 @@ class Compiler implements ICompiler
 {
     public static function getFiles()
     {
-        return CompilerHelper::getFiles(__DIR__, 'reportarticle', 10003);
+        return CompilerHelper::getFiles(__DIR__, 'reportarticlesets', 10003);
     }
 }
