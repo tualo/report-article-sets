@@ -38,6 +38,7 @@ Ext.define('Tualo.reportarticlesets.form.TemplateCommandWindow', {
                     if (field.getValue().length < 3) return;
                     let store = field.up('window').getComponent('list').getStore();
                     store.getProxy().setExtraParam("filter_by_search", 1);
+                    store.getProxy().setExtraParam("fulltext", 2);
                     store.getProxy().setExtraParam("search", field.getValue());
                     store.load();
                 }
@@ -46,7 +47,7 @@ Ext.define('Tualo.reportarticlesets.form.TemplateCommandWindow', {
                 if (e.getKey() == e.ENTER) {
                     let store = field.up('window').getComponent('list').getStore();
                     store.getProxy().setExtraParam("filter_by_search", 1);
-                    //                store.getProxy().setExtraParam("fulltext",2);
+                    store.getProxy().setExtraParam("fulltext", 2);
                     store.getProxy().setExtraParam("search", field.getValue());
                     store.load();
                     // field.up('window').getController().setViewType("list");
@@ -58,7 +59,7 @@ Ext.define('Tualo.reportarticlesets.form.TemplateCommandWindow', {
         itemId: 'list',
         xtype: 'dslist_view_editor_blg_sets_artikel',
         store: {
-            type: 'view_editor_blg_sets_artikel_store',
+            type: 'blg_artikel_set_store',
             autoLoad: true,
         },
         listeners: {
